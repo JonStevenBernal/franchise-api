@@ -115,6 +115,16 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 				.flatMapMany(FranquiciaServiceImpl::extraerProductosConMayorStockPorSucursal);
 	}
 
+	@Override
+	public Mono<Franquicia> obtenerFranquiciaPorId(String franquiciaId) {
+		return buscarFranquiciaPorId(franquiciaId);
+	}
+
+	@Override
+	public Flux<Franquicia> listarFranquicias() {
+		return franquiciaRepositoryPort.listarTodas();
+	}
+
 	private Mono<Franquicia> buscarFranquiciaPorId(String franquiciaId) {
 		return franquiciaRepositoryPort.buscarPorId(franquiciaId)
 				.switchIfEmpty(Mono.error(new EntidadNoEncontradaException("Franquicia", franquiciaId)));

@@ -23,6 +23,7 @@ import dev.johnbernal.franchise.domain.model.Producto;
 import dev.johnbernal.franchise.domain.model.Sucursal;
 import dev.johnbernal.franchise.domain.model.SucursalProductoMayorStock;
 import dev.johnbernal.franchise.domain.port.out.FranquiciaRepositoryPort;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -618,5 +619,42 @@ class FranquiciaServiceImplTest {
 
 		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
 		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar la franquicia cuando se consulta por un ID existente")
+	void obtenerFranquiciaPorIdCuandoExisteDebeRetornarFranquicia() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaMultiSucursal));
+
+		StepVerifier.create(franquiciaService.obtenerFranquiciaPorId(franquiciaId)).expectNext(franquiciaMultiSucursal)
+				.verifyComplete();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando no existe el ID de la franquicia consultada")
+	void obtenerFranquiciaPorIdCuandoNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.empty());
+
+		StepVerifier.create(franquiciaService.obtenerFranquiciaPorId(franquiciaId)).expectErrorMatches(throwable -> {
+			boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+			boolean contieneMensaje = throwable.getMessage().contains(franquiciaId);
+			return esTipoCorrecto && contieneMensaje;
+		}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+	}
+
+	@Test
+	@DisplayName("Debe listar todas las franquicias registradas")
+	void listarFranquiciasDebeRetornarTodasLasFranquicias() {
+		when(franquiciaRepositoryPort.listarTodas())
+				.thenReturn(Flux.just(franquiciaExistente, franquiciaMultiSucursal));
+
+		StepVerifier.create(franquiciaService.listarFranquicias())
+				.expectNext(franquiciaExistente, franquiciaMultiSucursal).verifyComplete();
+
+		verify(franquiciaRepositoryPort).listarTodas();
 	}
 }

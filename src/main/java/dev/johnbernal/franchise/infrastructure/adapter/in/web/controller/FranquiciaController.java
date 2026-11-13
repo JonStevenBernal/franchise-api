@@ -39,6 +39,18 @@ public class FranquiciaController {
 		return franquiciaUseCasePort.crearFranquicia(request.nombre()).map(FranquiciaResponse::fromDomain);
 	}
 
+	@GetMapping
+	@ResponseStatus(HttpStatus.OK)
+	public Flux<FranquiciaResponse> listarFranquicias() {
+		return franquiciaUseCasePort.listarFranquicias().map(FranquiciaResponse::fromDomain);
+	}
+
+	@GetMapping("/{franquiciaId}")
+	@ResponseStatus(HttpStatus.OK)
+	public Mono<FranquiciaResponse> obtenerFranquiciaPorId(@PathVariable String franquiciaId) {
+		return franquiciaUseCasePort.obtenerFranquiciaPorId(franquiciaId).map(FranquiciaResponse::fromDomain);
+	}
+
 	@PatchMapping("/{franquiciaId}/nombre")
 	@ResponseStatus(HttpStatus.OK)
 	public Mono<FranquiciaResponse> actualizarNombreFranquicia(@PathVariable String franquiciaId,
