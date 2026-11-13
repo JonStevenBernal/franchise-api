@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface SpringDataFranquiciaRepository extends ReactiveMongoRepository<FranquiciaDocument, String> {
-	
+
 	Mono<Boolean> existsByNombreIgnoreCase(String nombre);
-	
+
 }
