@@ -56,20 +56,37 @@ Puedes consumir cualquiera de los siguientes endpoints cambiando únicamente la 
 * **Nube (Render + MongoDB Atlas AWS):** `https://franchise-api-supf.onrender.com`
 * **Local (Docker / IDE):** `http://localhost:8080`
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `POST` | `/api/v1/franquicias` | Crear una nueva franquicia |
-| `GET` | `/api/v1/franquicias` | Listar todas las franquicias registradas |
-| `GET` | `/api/v1/franquicias/{franquiciaId}` | Consultar una franquicia por su ID |
-| `PATCH` | `/api/v1/franquicias/{franquiciaId}/nombre` | Actualizar el nombre de una franquicia |
-| `POST` | `/api/v1/franquicias/{franquiciaId}/sucursales` | Agregar una nueva sucursal a una franquicia |
-| `PATCH` | `/api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/nombre` | Actualizar el nombre de una sucursal |
-| `POST` | `/api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/productos` | Agregar un nuevo producto a una sucursal |
-| `PATCH` | `/api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/productos/{productoId}/nombre` | Actualizar el nombre de un producto |
-| `DELETE` | `/api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/productos/{productoId}` | Eliminar un producto de una sucursal |
-| `PATCH` | `/api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/productos/{productoId}/stock` | Modificar el stock de un producto |
-| `GET` | `/api/v1/franquicias/{franquiciaId}/productos/mayor-stock` | Obtener el producto con mayor stock por cada sucursal de la franquicia |
-| `GET` | `/actuator/health` | Verificar el estado de salud de la aplicación y conexión con MongoDB |
+### Franquicias
+* **Crear una nueva franquicia**  
+  `POST /api/v1/franquicias`
+* **Listar todas las franquicias registradas**  
+  `GET /api/v1/franquicias`
+* **Consultar una franquicia por su ID**  
+  `GET /api/v1/franquicias/{franquiciaId}`
+* **Actualizar el nombre de una franquicia**  
+  `PATCH /api/v1/franquicias/{franquiciaId}/nombre`
+
+### Sucursales
+* **Agregar una nueva sucursal a una franquicia**  
+  `POST /api/v1/franquicias/{franquiciaId}/sucursales`
+* **Actualizar el nombre de una sucursal**  
+  `PATCH /api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/nombre`
+
+### Productos
+* **Agregar un nuevo producto a una sucursal**  
+  `POST /api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/productos`
+* **Actualizar el nombre de un producto**  
+  `PATCH /api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/productos/{productoId}/nombre`
+* **Eliminar un producto de una sucursal**  
+  `DELETE /api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/productos/{productoId}`
+* **Modificar el stock de un producto**  
+  `PATCH /api/v1/franquicias/{franquiciaId}/sucursales/{sucursalId}/productos/{productoId}/stock`
+* **Producto con mayor stock por cada sucursal de la franquicia**  
+  `GET /api/v1/franquicias/{franquiciaId}/productos/mayor-stock`
+
+### Monitoreo
+* **Estado de salud de la aplicación y conexión con MongoDB**  
+  `GET /actuator/health`
 
 ---
 
