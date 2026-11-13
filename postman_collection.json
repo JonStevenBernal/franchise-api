@@ -1,0 +1,596 @@
+{
+  "info": {
+    "name": "Franchise API - Collection",
+    "description": "Coleccion de pruebas para la API Reactiva de Franquicias desarrollada con Spring Boot y MongoDB.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "franquiciaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sucursalId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productoId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Franquicias",
+      "item": [
+        {
+          "name": "1.1 Crear Franquicia (Exitoso - 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var data = pm.response.json();",
+                  "    pm.collectionVariables.set('franquiciaId', data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Franquicia El Dorado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias"]
+            }
+          }
+        },
+        {
+          "name": "1.2 Crear Franquicia Duplicada (Error - 409 Conflict)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Franquicia El Dorado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias"]
+            }
+          }
+        },
+        {
+          "name": "1.3 Crear Franquicia con Nombre Vacio (Error - 400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"   \"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias"]
+            }
+          }
+        },
+        {
+          "name": "1.4 Actualizar Nombre de Franquicia (Exitoso - 200 OK)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Franquicia El Dorado Renombrada\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/nombre",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "nombre"]
+            }
+          }
+        },
+        {
+          "name": "1.5 Actualizar Nombre de Franquicia Vacio (Error - 400 Bad Request)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"   \"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/nombre",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "nombre"]
+            }
+          }
+        },
+        {
+          "name": "1.6 Listar Todas las Franquicias (Exitoso - 200 OK)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias"]
+            }
+          }
+        },
+        {
+          "name": "1.7 Obtener Franquicia por ID (Exitoso - 200 OK)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}"]
+            }
+          }
+        },
+        {
+          "name": "1.8 Obtener Franquicia Inexistente (Error - 404 Not Found)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/id-inexistente-123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "id-inexistente-123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Sucursales",
+      "item": [
+        {
+          "name": "2.1 Agregar Sucursal (Exitoso - 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var data = pm.response.json();",
+                  "    if (data.sucursales && data.sucursales.length > 0) {",
+                  "        pm.collectionVariables.set('sucursalId', data.sucursales[data.sucursales.length - 1].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sucursal Norte\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Agregar Sucursal Duplicada (Error - 409 Conflict)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sucursal Norte\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales"]
+            }
+          }
+        },
+        {
+          "name": "2.3 Agregar Sucursal a Franquicia Inexistente (Error - 404 Not Found)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sucursal Inexistente\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/id-inexistente-123/sucursales",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "id-inexistente-123", "sucursales"]
+            }
+          }
+        },
+        {
+          "name": "2.4 Agregar Sucursal con Nombre Vacio (Error - 400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"   \"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales"]
+            }
+          }
+        },
+        {
+          "name": "2.5 Actualizar Nombre de Sucursal (Exitoso - 200 OK)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sucursal Norte Principal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/nombre",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "nombre"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Productos",
+      "item": [
+        {
+          "name": "3.1 Agregar Producto (Exitoso - 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var data = pm.response.json();",
+                  "    var sucursalIdActual = pm.collectionVariables.get('sucursalId');",
+                  "    if (data.sucursales && data.sucursales.length > 0) {",
+                  "        var sucursalEncontrada = data.sucursales.find(function (sucursal) {",
+                  "            return sucursal.id === sucursalIdActual;",
+                  "        });",
+                  "        if (sucursalEncontrada && sucursalEncontrada.productos && sucursalEncontrada.productos.length > 0) {",
+                  "            var ultimoProducto = sucursalEncontrada.productos[sucursalEncontrada.productos.length - 1];",
+                  "            pm.collectionVariables.set('productoId', ultimoProducto.id);",
+                  "        }",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cafe Latte\",\n  \"stock\": 25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos"]
+            }
+          }
+        },
+        {
+          "name": "3.2 Agregar Producto Duplicado (Error - 409 Conflict)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cafe Latte\",\n  \"stock\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos"]
+            }
+          }
+        },
+        {
+          "name": "3.3 Agregar Producto con Stock Negativo (Error - 400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Croissant\",\n  \"stock\": -5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos"]
+            }
+          }
+        },
+        {
+          "name": "3.4 Agregar Producto con Nombre Vacio (Error - 400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"   \",\n  \"stock\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos"]
+            }
+          }
+        },
+        {
+          "name": "3.5 Agregar Producto a Sucursal Inexistente (Error - 404 Not Found)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Capuccino\",\n  \"stock\": 15\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/sucursal-inexistente-123/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "sucursal-inexistente-123", "productos"]
+            }
+          }
+        },
+        {
+          "name": "3.6 Eliminar Producto (Exitoso - 200 OK)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos/{{productoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos", "{{productoId}}"]
+            }
+          }
+        },
+        {
+          "name": "3.7 Eliminar Producto Inexistente (Error - 404 Not Found)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos/producto-inexistente-123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos", "producto-inexistente-123"]
+            }
+          }
+        },
+        {
+          "name": "3.8 Actualizar Stock de Producto (Exitoso - 200 OK)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 80\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos/{{productoId}}/stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos", "{{productoId}}", "stock"]
+            }
+          }
+        },
+        {
+          "name": "3.9 Actualizar Stock con Valor Negativo (Error - 400 Bad Request)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": -5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos/{{productoId}}/stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos", "{{productoId}}", "stock"]
+            }
+          }
+        },
+        {
+          "name": "3.10 Actualizar Stock de Producto Inexistente (Error - 404 Not Found)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos/producto-inexistente-123/stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos", "producto-inexistente-123", "stock"]
+            }
+          }
+        },
+        {
+          "name": "3.11 Actualizar Nombre de Producto (Exitoso - 200 OK)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cafe Latte Vainilla\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/sucursales/{{sucursalId}}/productos/{{productoId}}/nombre",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "sucursales", "{{sucursalId}}", "productos", "{{productoId}}", "nombre"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Reportes",
+      "item": [
+        {
+          "name": "4.1 Obtener Producto con Mayor Stock por Sucursal (Exitoso - 200 OK)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/{{franquiciaId}}/productos/mayor-stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "{{franquiciaId}}", "productos", "mayor-stock"]
+            }
+          }
+        },
+        {
+          "name": "4.2 Mayor Stock de Franquicia Inexistente (Error - 404 Not Found)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/franquicias/id-inexistente-123/productos/mayor-stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "franquicias", "id-inexistente-123", "productos", "mayor-stock"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Actuator",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
