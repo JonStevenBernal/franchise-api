@@ -44,6 +44,15 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 	}
 
 	@Override
+	public Mono<Franquicia> actualizarNombreFranquicia(String franquiciaId, String nuevoNombre) {
+		String nombreLimpio = nuevoNombre.trim();
+		return buscarFranquiciaPorId(franquiciaId)
+				.flatMap(franquicia -> validarNombreFranquiciaDisponible(franquicia, nombreLimpio))
+				.map(franquicia -> new Franquicia(franquicia.id(), nombreLimpio, franquicia.sucursales()))
+				.flatMap(franquiciaRepositoryPort::guardar);
+	}
+
+	@Override
 	public Mono<Franquicia> agregarSucursal(String franquiciaId, String nombreSucursal) {
 		String nombreLimpio = nombreSucursal.trim();
 		return buscarFranquiciaPorId(franquiciaId)
@@ -91,6 +100,15 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 	private Mono<Franquicia> buscarFranquiciaPorId(String franquiciaId) {
 		return franquiciaRepositoryPort.buscarPorId(franquiciaId)
 				.switchIfEmpty(Mono.error(new EntidadNoEncontradaException("Franquicia", franquiciaId)));
+	}
+
+	private Mono<Franquicia> validarNombreFranquiciaDisponible(Franquicia franquicia, String nuevoNombre) {
+		if (franquicia.nombre().equalsIgnoreCase(nuevoNombre)) {
+			return Mono.just(franquicia);
+		}
+		return franquiciaRepositoryPort.existePorNombre(nuevoNombre).filter(Boolean.FALSE::equals)
+				.switchIfEmpty(Mono.error(new EntidadDuplicadaException("Franquicia", nuevoNombre)))
+				.map(noExiste -> franquicia);
 	}
 
 	private static Sucursal buscarSucursalEnFranquicia(Franquicia franquicia, String sucursalId) {

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.johnbernal.franchise.domain.port.in.FranquiciaUseCasePort;
+import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.ActualizarNombreRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.ActualizarStockRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.AgregarProductoRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.AgregarSucursalRequest;
@@ -36,6 +37,14 @@ public class FranquiciaController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public Mono<FranquiciaResponse> crearFranquicia(@Valid @RequestBody CrearFranquiciaRequest request) {
 		return franquiciaUseCasePort.crearFranquicia(request.nombre()).map(FranquiciaResponse::fromDomain);
+	}
+
+	@PatchMapping("/{franquiciaId}/nombre")
+	@ResponseStatus(HttpStatus.OK)
+	public Mono<FranquiciaResponse> actualizarNombreFranquicia(@PathVariable String franquiciaId,
+			@Valid @RequestBody ActualizarNombreRequest request) {
+		return franquiciaUseCasePort.actualizarNombreFranquicia(franquiciaId, request.nombre())
+				.map(FranquiciaResponse::fromDomain);
 	}
 
 	@PostMapping("/{franquiciaId}/sucursales")
