@@ -40,6 +40,8 @@ class FranquiciaServiceImplTest {
 	private String sucursalInexistenteId;
 	private String nombreProducto;
 	private int stockInicial;
+	private int nuevoStock;
+	private int stockNegativo;
 	private String productoId;
 	private String productoInexistenteId;
 	private Sucursal sucursalExistente;
@@ -60,6 +62,8 @@ class FranquiciaServiceImplTest {
 		sucursalInexistenteId = "sucursal-inexistente";
 		nombreProducto = "Cafe Latte";
 		stockInicial = 25;
+		nuevoStock = 80;
+		stockNegativo = -5;
 		productoId = "producto-1";
 		productoInexistenteId = "producto-inexistente";
 		sucursalExistente = new Sucursal(sucursalId, nombreSucursal, List.of());
@@ -187,8 +191,6 @@ class FranquiciaServiceImplTest {
 	@Test
 	@DisplayName("Debe retornar error StockInvalidoException cuando el stock inicial es negativo")
 	void agregarProductoConStockNegativoDebeLanzarExcepcion() {
-		int stockNegativo = -5;
-
 		StepVerifier.create(franquiciaService.agregarProducto(franquiciaId, sucursalId, nombreProducto, stockNegativo))
 				.expectErrorMatches(throwable -> throwable instanceof StockInvalidoException).verify();
 
@@ -302,6 +304,90 @@ class FranquiciaServiceImplTest {
 		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConSucursalYProducto));
 
 		StepVerifier.create(franquiciaService.eliminarProducto(franquiciaId, sucursalId, productoInexistenteId))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+					boolean contieneMensaje = throwable.getMessage().contains(productoInexistenteId);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe actualizar el stock del producto indicado y conservar los demas productos intactos")
+	void actualizarStockProductoConDatosValidosDebeActualizarYRetornarFranquicia() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConDosProductos));
+		when(franquiciaRepositoryPort.guardar(any(Franquicia.class)))
+				.thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+
+		StepVerifier.create(franquiciaService.actualizarStockProducto(franquiciaId, sucursalId, productoId, nuevoStock))
+				.assertNext(franquiciaActualizada -> {
+					assertThat(franquiciaActualizada.id()).isEqualTo(franquiciaId);
+					Sucursal sucursalActualizada = franquiciaActualizada.sucursales().getFirst();
+					assertThat(sucursalActualizada.productos()).hasSize(2);
+					Producto productoActualizado = sucursalActualizada.productos().getFirst();
+					assertThat(productoActualizado.id()).isEqualTo(productoId);
+					assertThat(productoActualizado.nombre()).isEqualTo(nombreProducto);
+					assertThat(productoActualizado.stock()).isEqualTo(nuevoStock);
+					assertThat(sucursalActualizada.productos().get(1)).isEqualTo(otroProducto);
+				}).verifyComplete();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error StockInvalidoException cuando el nuevo stock es negativo")
+	void actualizarStockProductoConStockNegativoDebeLanzarExcepcion() {
+		StepVerifier
+				.create(franquiciaService.actualizarStockProducto(franquiciaId, sucursalId, productoId, stockNegativo))
+				.expectErrorMatches(throwable -> throwable instanceof StockInvalidoException).verify();
+
+		verify(franquiciaRepositoryPort, never()).buscarPorId(any());
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando la franquicia no existe al actualizar stock")
+	void actualizarStockProductoCuandoFranquiciaNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.empty());
+
+		StepVerifier.create(franquiciaService.actualizarStockProducto(franquiciaId, sucursalId, productoId, nuevoStock))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+					boolean contieneMensaje = throwable.getMessage().contains(franquiciaId);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando la sucursal no existe al actualizar stock")
+	void actualizarStockProductoCuandoSucursalNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConSucursalYProducto));
+
+		StepVerifier.create(
+				franquiciaService.actualizarStockProducto(franquiciaId, sucursalInexistenteId, productoId, nuevoStock))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+					boolean contieneMensaje = throwable.getMessage().contains(sucursalInexistenteId);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando el producto no existe al actualizar stock")
+	void actualizarStockProductoCuandoProductoNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConSucursalYProducto));
+
+		StepVerifier.create(
+				franquiciaService.actualizarStockProducto(franquiciaId, sucursalId, productoInexistenteId, nuevoStock))
 				.expectErrorMatches(throwable -> {
 					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
 					boolean contieneMensaje = throwable.getMessage().contains(productoInexistenteId);

@@ -67,6 +67,17 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 				.flatMap(franquiciaRepositoryPort::guardar);
 	}
 
+	@Override
+	public Mono<Franquicia> actualizarStockProducto(String franquiciaId, String sucursalId, String productoId,
+			int nuevoStock) {
+		if (nuevoStock < 0) {
+			return Mono.error(new StockInvalidoException(nuevoStock));
+		}
+		return buscarFranquiciaPorId(franquiciaId)
+				.map(franquicia -> actualizarStockEnSucursal(franquicia, sucursalId, productoId, nuevoStock))
+				.flatMap(franquiciaRepositoryPort::guardar);
+	}
+
 	private Mono<Franquicia> buscarFranquiciaPorId(String franquiciaId) {
 		return franquiciaRepositoryPort.buscarPorId(franquiciaId)
 				.switchIfEmpty(Mono.error(new EntidadNoEncontradaException("Franquicia", franquiciaId)));
@@ -148,6 +159,28 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 		List<Producto> productosRestantes = sucursal.productos().stream()
 				.filter(producto -> !producto.id().equals(productoId)).toList();
 		return new Sucursal(sucursal.id(), sucursal.nombre(), productosRestantes);
+	}
+
+	private static Franquicia actualizarStockEnSucursal(Franquicia franquicia, String sucursalId, String productoId,
+			int nuevoStock) {
+		Sucursal sucursalObjetivo = buscarSucursalEnFranquicia(franquicia, sucursalId);
+		Producto productoObjetivo = buscarProductoEnSucursal(sucursalObjetivo, productoId);
+		Producto productoActualizado = new Producto(productoObjetivo.id(), productoObjetivo.nombre(), nuevoStock);
+		Sucursal sucursalActualizada = reemplazarProductoEnSucursal(sucursalObjetivo, productoActualizado);
+		return reemplazarSucursalEnFranquicia(franquicia, sucursalActualizada);
+	}
+
+	private static Sucursal reemplazarProductoEnSucursal(Sucursal sucursal, Producto productoActualizado) {
+		List<Producto> productosActualizados = sucursal.productos().stream()
+				.map(producto -> reemplazarProductoSiCoincideId(producto, productoActualizado)).toList();
+		return new Sucursal(sucursal.id(), sucursal.nombre(), productosActualizados);
+	}
+
+	private static Producto reemplazarProductoSiCoincideId(Producto productoActual, Producto productoActualizado) {
+		if (productoActual.id().equals(productoActualizado.id())) {
+			return productoActualizado;
+		}
+		return productoActual;
 	}
 
 	private static Franquicia reemplazarSucursalEnFranquicia(Franquicia franquicia, Sucursal sucursalActualizada) {

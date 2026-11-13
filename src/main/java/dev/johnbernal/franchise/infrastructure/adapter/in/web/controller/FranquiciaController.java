@@ -2,6 +2,7 @@ package dev.johnbernal.franchise.infrastructure.adapter.in.web.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.johnbernal.franchise.domain.port.in.FranquiciaUseCasePort;
+import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.ActualizarStockRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.AgregarProductoRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.AgregarSucursalRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.CrearFranquiciaRequest;
@@ -54,6 +56,15 @@ public class FranquiciaController {
 	public Mono<FranquiciaResponse> eliminarProducto(@PathVariable String franquiciaId, @PathVariable String sucursalId,
 			@PathVariable String productoId) {
 		return franquiciaUseCasePort.eliminarProducto(franquiciaId, sucursalId, productoId)
+				.map(FranquiciaResponse::fromDomain);
+	}
+
+	@PatchMapping("/{franquiciaId}/sucursales/{sucursalId}/productos/{productoId}/stock")
+	@ResponseStatus(HttpStatus.OK)
+	public Mono<FranquiciaResponse> actualizarStockProducto(@PathVariable String franquiciaId,
+			@PathVariable String sucursalId, @PathVariable String productoId,
+			@Valid @RequestBody ActualizarStockRequest request) {
+		return franquiciaUseCasePort.actualizarStockProducto(franquiciaId, sucursalId, productoId, request.stock())
 				.map(FranquiciaResponse::fromDomain);
 	}
 }
