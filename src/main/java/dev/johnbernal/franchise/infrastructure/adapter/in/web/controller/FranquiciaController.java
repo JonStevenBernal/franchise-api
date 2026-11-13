@@ -55,6 +55,14 @@ public class FranquiciaController {
 				.map(FranquiciaResponse::fromDomain);
 	}
 
+	@PatchMapping("/{franquiciaId}/sucursales/{sucursalId}/nombre")
+	@ResponseStatus(HttpStatus.OK)
+	public Mono<FranquiciaResponse> actualizarNombreSucursal(@PathVariable String franquiciaId,
+			@PathVariable String sucursalId, @Valid @RequestBody ActualizarNombreRequest request) {
+		return franquiciaUseCasePort.actualizarNombreSucursal(franquiciaId, sucursalId, request.nombre())
+				.map(FranquiciaResponse::fromDomain);
+	}
+
 	@PostMapping("/{franquiciaId}/sucursales/{sucursalId}/productos")
 	@ResponseStatus(HttpStatus.CREATED)
 	public Mono<FranquiciaResponse> agregarProducto(@PathVariable String franquiciaId, @PathVariable String sucursalId,

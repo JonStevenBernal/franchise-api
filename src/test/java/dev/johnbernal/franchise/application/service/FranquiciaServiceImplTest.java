@@ -39,6 +39,8 @@ class FranquiciaServiceImplTest {
 	private String nombreDuplicado;
 	private String franquiciaId;
 	private String nombreSucursal;
+	private String nuevoNombreSucursal;
+	private String nombreSucursalSur;
 	private String sucursalId;
 	private String sucursalInexistenteId;
 	private String nombreProducto;
@@ -65,6 +67,8 @@ class FranquiciaServiceImplTest {
 		nombreDuplicado = "Otra Franquicia";
 		franquiciaId = "franquicia-id-123";
 		nombreSucursal = "Sucursal Norte";
+		nuevoNombreSucursal = "Sucursal Norte Principal";
+		nombreSucursalSur = "Sucursal Sur";
 		sucursalId = "sucursal-1";
 		sucursalInexistenteId = "sucursal-inexistente";
 		nombreProducto = "Cafe Latte";
@@ -82,7 +86,8 @@ class FranquiciaServiceImplTest {
 		Sucursal sucursalConDosProductos = new Sucursal(sucursalId, nombreSucursal,
 				List.of(productoExistente, otroProducto));
 		Sucursal sucursalSinProductos = new Sucursal("sucursal-2", "Sucursal Centro", List.of());
-		Sucursal sucursalSur = new Sucursal("sucursal-3", "Sucursal Sur", List.of(productoMenorSur, productoMayorSur));
+		Sucursal sucursalSur = new Sucursal("sucursal-3", nombreSucursalSur,
+				List.of(productoMenorSur, productoMayorSur));
 		franquiciaExistente = new Franquicia(franquiciaId, nombreFranquicia, List.of());
 		franquiciaConSucursal = new Franquicia(franquiciaId, nombreFranquicia, List.of(sucursalExistente));
 		franquiciaConSucursalYProducto = new Franquicia(franquiciaId, nombreFranquicia, List.of(sucursalConProducto));
@@ -420,7 +425,7 @@ class FranquiciaServiceImplTest {
 				.assertNext(resultadoNorte -> assertThat(resultadoNorte)
 						.isEqualTo(new SucursalProductoMayorStock(sucursalId, nombreSucursal, productoExistente)))
 				.assertNext(resultadoSur -> assertThat(resultadoSur)
-						.isEqualTo(new SucursalProductoMayorStock("sucursal-3", "Sucursal Sur", productoMayorSur)))
+						.isEqualTo(new SucursalProductoMayorStock("sucursal-3", nombreSucursalSur, productoMayorSur)))
 				.verifyComplete();
 
 		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
@@ -459,7 +464,8 @@ class FranquiciaServiceImplTest {
 		when(franquiciaRepositoryPort.guardar(any(Franquicia.class)))
 				.thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
-		StepVerifier.create(franquiciaService.actualizarNombreFranquicia(franquiciaId, "  " + nuevoNombreFranquicia + "  "))
+		StepVerifier
+				.create(franquiciaService.actualizarNombreFranquicia(franquiciaId, "  " + nuevoNombreFranquicia + "  "))
 				.assertNext(franquiciaActualizada -> {
 					assertThat(franquiciaActualizada.id()).isEqualTo(franquiciaId);
 					assertThat(franquiciaActualizada.nombre()).isEqualTo(nuevoNombreFranquicia);
@@ -498,6 +504,59 @@ class FranquiciaServiceImplTest {
 				.expectErrorMatches(throwable -> {
 					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
 					boolean contieneMensaje = throwable.getMessage().contains(franquiciaId);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe actualizar el nombre de la sucursal y conservar sus productos")
+	void actualizarNombreSucursalConDatosValidosDebeActualizarYRetornarFranquicia() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConSucursalYProducto));
+		when(franquiciaRepositoryPort.guardar(any(Franquicia.class)))
+				.thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+
+		StepVerifier.create(
+				franquiciaService.actualizarNombreSucursal(franquiciaId, sucursalId, "  " + nuevoNombreSucursal + "  "))
+				.assertNext(franquiciaActualizada -> {
+					Sucursal sucursalActualizada = franquiciaActualizada.sucursales().getFirst();
+					assertThat(sucursalActualizada.id()).isEqualTo(sucursalId);
+					assertThat(sucursalActualizada.nombre()).isEqualTo(nuevoNombreSucursal);
+					assertThat(sucursalActualizada.productos()).containsExactly(productoExistente);
+				}).verifyComplete();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadDuplicadaException cuando otra sucursal de la franquicia ya tiene ese nombre")
+	void actualizarNombreSucursalConNombreDuplicadoDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaMultiSucursal));
+
+		StepVerifier.create(franquiciaService.actualizarNombreSucursal(franquiciaId, sucursalId, nombreSucursalSur))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadDuplicadaException;
+					boolean contieneMensaje = throwable.getMessage().contains(nombreSucursalSur);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando la sucursal no existe al actualizar nombre")
+	void actualizarNombreSucursalCuandoSucursalNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConSucursal));
+
+		StepVerifier.create(
+				franquiciaService.actualizarNombreSucursal(franquiciaId, sucursalInexistenteId, nuevoNombreSucursal))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+					boolean contieneMensaje = throwable.getMessage().contains(sucursalInexistenteId);
 					return esTipoCorrecto && contieneMensaje;
 				}).verify();
 
