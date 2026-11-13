@@ -9,7 +9,9 @@ import org.springframework.util.CollectionUtils;
 
 import dev.johnbernal.franchise.domain.exception.EntidadDuplicadaException;
 import dev.johnbernal.franchise.domain.exception.EntidadNoEncontradaException;
+import dev.johnbernal.franchise.domain.exception.StockInvalidoException;
 import dev.johnbernal.franchise.domain.model.Franquicia;
+import dev.johnbernal.franchise.domain.model.Producto;
 import dev.johnbernal.franchise.domain.model.Sucursal;
 import dev.johnbernal.franchise.domain.port.in.FranquiciaUseCasePort;
 import dev.johnbernal.franchise.domain.port.out.FranquiciaRepositoryPort;
@@ -46,9 +48,29 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 				.flatMap(franquiciaRepositoryPort::guardar);
 	}
 
+	@Override
+	public Mono<Franquicia> agregarProducto(String franquiciaId, String sucursalId, String nombreProducto,
+			int stockInicial) {
+		if (stockInicial < 0) {
+			return Mono.error(new StockInvalidoException(stockInicial));
+		}
+		String nombreLimpio = nombreProducto.trim();
+		return buscarFranquiciaPorId(franquiciaId)
+				.map(franquicia -> agregarProductoASucursal(franquicia, sucursalId, nombreLimpio, stockInicial))
+				.flatMap(franquiciaRepositoryPort::guardar);
+	}
+
 	private Mono<Franquicia> buscarFranquiciaPorId(String franquiciaId) {
 		return franquiciaRepositoryPort.buscarPorId(franquiciaId)
 				.switchIfEmpty(Mono.error(new EntidadNoEncontradaException("Franquicia", franquiciaId)));
+	}
+
+	private static Sucursal buscarSucursalEnFranquicia(Franquicia franquicia, String sucursalId) {
+		if (CollectionUtils.isEmpty(franquicia.sucursales())) {
+			throw new EntidadNoEncontradaException("Sucursal", sucursalId);
+		}
+		return franquicia.sucursales().stream().filter(sucursal -> sucursal.id().equals(sucursalId)).findFirst()
+				.orElseThrow(() -> new EntidadNoEncontradaException("Sucursal", sucursalId));
 	}
 
 	private static void validarSucursalNoDuplicada(Franquicia franquicia, String nombreSucursal) {
@@ -57,6 +79,16 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 					.anyMatch(sucursal -> sucursal.nombre().equalsIgnoreCase(nombreSucursal));
 			if (existe) {
 				throw new EntidadDuplicadaException("Sucursal", nombreSucursal);
+			}
+		}
+	}
+
+	private static void validarProductoNoDuplicado(Sucursal sucursal, String nombreProducto) {
+		if (!CollectionUtils.isEmpty(sucursal.productos())) {
+			boolean existe = sucursal.productos().stream()
+					.anyMatch(producto -> producto.nombre().equalsIgnoreCase(nombreProducto));
+			if (existe) {
+				throw new EntidadDuplicadaException("Producto", nombreProducto);
 			}
 		}
 	}
@@ -70,5 +102,36 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 		nuevasSucursales.add(nuevaSucursal);
 
 		return new Franquicia(franquicia.id(), franquicia.nombre(), nuevasSucursales);
+	}
+
+	private static Franquicia agregarProductoASucursal(Franquicia franquicia, String sucursalId, String nombreProducto,
+			int stockInicial) {
+		Sucursal sucursalObjetivo = buscarSucursalEnFranquicia(franquicia, sucursalId);
+		validarProductoNoDuplicado(sucursalObjetivo, nombreProducto);
+		Sucursal sucursalActualizada = crearSucursalConNuevoProducto(sucursalObjetivo, nombreProducto, stockInicial);
+		return reemplazarSucursalEnFranquicia(franquicia, sucursalActualizada);
+	}
+
+	private static Sucursal crearSucursalConNuevoProducto(Sucursal sucursal, String nombreProducto, int stockInicial) {
+		Producto nuevoProducto = new Producto(UUID.randomUUID().toString(), nombreProducto, stockInicial);
+		List<Producto> nuevosProductos = new ArrayList<>();
+		if (!CollectionUtils.isEmpty(sucursal.productos())) {
+			nuevosProductos.addAll(sucursal.productos());
+		}
+		nuevosProductos.add(nuevoProducto);
+		return new Sucursal(sucursal.id(), sucursal.nombre(), nuevosProductos);
+	}
+
+	private static Franquicia reemplazarSucursalEnFranquicia(Franquicia franquicia, Sucursal sucursalActualizada) {
+		List<Sucursal> sucursalesActualizadas = franquicia.sucursales().stream()
+				.map(sucursal -> reemplazarSiCoincideId(sucursal, sucursalActualizada)).toList();
+		return new Franquicia(franquicia.id(), franquicia.nombre(), sucursalesActualizadas);
+	}
+
+	private static Sucursal reemplazarSiCoincideId(Sucursal sucursalActual, Sucursal sucursalActualizada) {
+		if (sucursalActual.id().equals(sucursalActualizada.id())) {
+			return sucursalActualizada;
+		}
+		return sucursalActual;
 	}
 }

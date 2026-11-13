@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.johnbernal.franchise.domain.port.in.FranquiciaUseCasePort;
+import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.AgregarProductoRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.AgregarSucursalRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.CrearFranquiciaRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.FranquiciaResponse;
@@ -36,6 +37,14 @@ public class FranquiciaController {
 	public Mono<FranquiciaResponse> agregarSucursal(@PathVariable String franquiciaId,
 			@Valid @RequestBody AgregarSucursalRequest request) {
 		return franquiciaUseCasePort.agregarSucursal(franquiciaId, request.nombre())
+				.map(FranquiciaResponse::fromDomain);
+	}
+
+	@PostMapping("/{franquiciaId}/sucursales/{sucursalId}/productos")
+	@ResponseStatus(HttpStatus.CREATED)
+	public Mono<FranquiciaResponse> agregarProducto(@PathVariable String franquiciaId, @PathVariable String sucursalId,
+			@Valid @RequestBody AgregarProductoRequest request) {
+		return franquiciaUseCasePort.agregarProducto(franquiciaId, sucursalId, request.nombre(), request.stock())
 				.map(FranquiciaResponse::fromDomain);
 	}
 }
