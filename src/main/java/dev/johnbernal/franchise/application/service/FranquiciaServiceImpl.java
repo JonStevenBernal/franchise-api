@@ -1,7 +1,9 @@
 package dev.johnbernal.franchise.application.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -13,8 +15,10 @@ import dev.johnbernal.franchise.domain.exception.StockInvalidoException;
 import dev.johnbernal.franchise.domain.model.Franquicia;
 import dev.johnbernal.franchise.domain.model.Producto;
 import dev.johnbernal.franchise.domain.model.Sucursal;
+import dev.johnbernal.franchise.domain.model.SucursalProductoMayorStock;
 import dev.johnbernal.franchise.domain.port.in.FranquiciaUseCasePort;
 import dev.johnbernal.franchise.domain.port.out.FranquiciaRepositoryPort;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -76,6 +80,12 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 		return buscarFranquiciaPorId(franquiciaId)
 				.map(franquicia -> actualizarStockEnSucursal(franquicia, sucursalId, productoId, nuevoStock))
 				.flatMap(franquiciaRepositoryPort::guardar);
+	}
+
+	@Override
+	public Flux<SucursalProductoMayorStock> obtenerProductosConMayorStockPorSucursal(String franquiciaId) {
+		return buscarFranquiciaPorId(franquiciaId)
+				.flatMapMany(FranquiciaServiceImpl::extraerProductosConMayorStockPorSucursal);
 	}
 
 	private Mono<Franquicia> buscarFranquiciaPorId(String franquiciaId) {
@@ -194,5 +204,22 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 			return sucursalActualizada;
 		}
 		return sucursalActual;
+	}
+
+	private static Flux<SucursalProductoMayorStock> extraerProductosConMayorStockPorSucursal(Franquicia franquicia) {
+		if (CollectionUtils.isEmpty(franquicia.sucursales())) {
+			return Flux.empty();
+		}
+		return Flux.fromIterable(franquicia.sucursales())
+				.concatMap(sucursal -> Mono.justOrEmpty(obtenerMayorStockDeSucursal(sucursal)));
+	}
+
+	private static Optional<SucursalProductoMayorStock> obtenerMayorStockDeSucursal(Sucursal sucursal) {
+		if (CollectionUtils.isEmpty(sucursal.productos())) {
+			return Optional.empty();
+		}
+		return sucursal.productos().stream().max(Comparator.comparingInt(Producto::stock))
+				.map(productoMayorStock -> new SucursalProductoMayorStock(sucursal.id(), sucursal.nombre(),
+						productoMayorStock));
 	}
 }

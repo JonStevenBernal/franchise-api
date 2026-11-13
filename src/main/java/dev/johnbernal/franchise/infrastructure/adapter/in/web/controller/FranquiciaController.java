@@ -2,6 +2,7 @@ package dev.johnbernal.franchise.infrastructure.adapter.in.web.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +17,9 @@ import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.AgregarProduct
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.AgregarSucursalRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.CrearFranquiciaRequest;
 import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.FranquiciaResponse;
+import dev.johnbernal.franchise.infrastructure.adapter.in.web.dto.SucursalProductoMayorStockResponse;
 import jakarta.validation.Valid;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -66,5 +69,13 @@ public class FranquiciaController {
 			@Valid @RequestBody ActualizarStockRequest request) {
 		return franquiciaUseCasePort.actualizarStockProducto(franquiciaId, sucursalId, productoId, request.stock())
 				.map(FranquiciaResponse::fromDomain);
+	}
+
+	@GetMapping("/{franquiciaId}/productos/mayor-stock")
+	@ResponseStatus(HttpStatus.OK)
+	public Flux<SucursalProductoMayorStockResponse> obtenerProductosConMayorStockPorSucursal(
+			@PathVariable String franquiciaId) {
+		return franquiciaUseCasePort.obtenerProductosConMayorStockPorSucursal(franquiciaId)
+				.map(SucursalProductoMayorStockResponse::fromDomain);
 	}
 }

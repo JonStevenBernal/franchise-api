@@ -21,6 +21,7 @@ import dev.johnbernal.franchise.domain.exception.StockInvalidoException;
 import dev.johnbernal.franchise.domain.model.Franquicia;
 import dev.johnbernal.franchise.domain.model.Producto;
 import dev.johnbernal.franchise.domain.model.Sucursal;
+import dev.johnbernal.franchise.domain.model.SucursalProductoMayorStock;
 import dev.johnbernal.franchise.domain.port.out.FranquiciaRepositoryPort;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -47,10 +48,12 @@ class FranquiciaServiceImplTest {
 	private Sucursal sucursalExistente;
 	private Producto productoExistente;
 	private Producto otroProducto;
+	private Producto productoMayorSur;
 	private Franquicia franquiciaExistente;
 	private Franquicia franquiciaConSucursal;
 	private Franquicia franquiciaConSucursalYProducto;
 	private Franquicia franquiciaConDosProductos;
+	private Franquicia franquiciaMultiSucursal;
 
 	@BeforeEach
 	void setUp() {
@@ -69,13 +72,19 @@ class FranquiciaServiceImplTest {
 		sucursalExistente = new Sucursal(sucursalId, nombreSucursal, List.of());
 		productoExistente = new Producto(productoId, nombreProducto, stockInicial);
 		otroProducto = new Producto("producto-2", "Croissant", 10);
+		productoMayorSur = new Producto("producto-3", "Capuccino", 60);
+		Producto productoMenorSur = new Producto("producto-4", "Te Verde", 12);
 		Sucursal sucursalConProducto = new Sucursal(sucursalId, nombreSucursal, List.of(productoExistente));
 		Sucursal sucursalConDosProductos = new Sucursal(sucursalId, nombreSucursal,
 				List.of(productoExistente, otroProducto));
+		Sucursal sucursalSinProductos = new Sucursal("sucursal-2", "Sucursal Centro", List.of());
+		Sucursal sucursalSur = new Sucursal("sucursal-3", "Sucursal Sur", List.of(productoMenorSur, productoMayorSur));
 		franquiciaExistente = new Franquicia(franquiciaId, nombreFranquicia, List.of());
 		franquiciaConSucursal = new Franquicia(franquiciaId, nombreFranquicia, List.of(sucursalExistente));
 		franquiciaConSucursalYProducto = new Franquicia(franquiciaId, nombreFranquicia, List.of(sucursalConProducto));
 		franquiciaConDosProductos = new Franquicia(franquiciaId, nombreFranquicia, List.of(sucursalConDosProductos));
+		franquiciaMultiSucursal = new Franquicia(franquiciaId, nombreFranquicia,
+				List.of(sucursalConDosProductos, sucursalSinProductos, sucursalSur));
 	}
 
 	@Test
@@ -396,5 +405,45 @@ class FranquiciaServiceImplTest {
 
 		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
 		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar el producto con mayor stock por cada sucursal con productos e ignorar sucursales vacias")
+	void obtenerProductosConMayorStockPorSucursalCuandoTieneSucursalesDebeRetornarMayorStock() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaMultiSucursal));
+
+		StepVerifier.create(franquiciaService.obtenerProductosConMayorStockPorSucursal(franquiciaId))
+				.assertNext(resultadoNorte -> assertThat(resultadoNorte)
+						.isEqualTo(new SucursalProductoMayorStock(sucursalId, nombreSucursal, productoExistente)))
+				.assertNext(resultadoSur -> assertThat(resultadoSur)
+						.isEqualTo(new SucursalProductoMayorStock("sucursal-3", "Sucursal Sur", productoMayorSur)))
+				.verifyComplete();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+	}
+
+	@Test
+	@DisplayName("Debe retornar flujo vacio cuando la franquicia existe pero no tiene sucursales")
+	void obtenerProductosConMayorStockPorSucursalCuandoNoTieneSucursalesDebeRetornarVacio() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaExistente));
+
+		StepVerifier.create(franquiciaService.obtenerProductosConMayorStockPorSucursal(franquiciaId)).verifyComplete();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando la franquicia no existe al consultar mayor stock")
+	void obtenerProductosConMayorStockPorSucursalCuandoFranquiciaNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.empty());
+
+		StepVerifier.create(franquiciaService.obtenerProductosConMayorStockPorSucursal(franquiciaId))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+					boolean contieneMensaje = throwable.getMessage().contains(franquiciaId);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
 	}
 }
