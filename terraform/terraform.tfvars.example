@@ -1,0 +1,20 @@
+# Copia este archivo como "terraform.tfvars" (ignorado por Git) y completa tus credenciales.
+
+atlas_org_id = "TU_ORGANIZATION_ID"
+
+# Opción A: Service Account (recomendado en la UI actual de MongoDB Atlas)
+atlas_client_id     = "TU_CLIENT_ID"
+atlas_client_secret = "TU_CLIENT_SECRET"
+
+# Opción B: API Key clásica (si usaste Public/Private Key, descomenta estas 2 líneas y comenta Opción A)
+# atlas_public_key  = "TU_PUBLIC_KEY"
+# atlas_private_key = "TU_PRIVATE_KEY"
+
+# Configuración del proyecto y base de datos
+project_name = "franchise-api-iac"
+cluster_name = "franchise-aws-cluster"
+aws_region   = "US_EAST_1"
+db_name      = "franchise_db"
+db_username  = "franchise_user"
+db_password  = "CambiaEstaPasswordSegura123"
+
