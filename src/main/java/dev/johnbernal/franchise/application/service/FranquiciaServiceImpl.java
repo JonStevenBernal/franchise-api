@@ -60,6 +60,13 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 				.flatMap(franquiciaRepositoryPort::guardar);
 	}
 
+	@Override
+	public Mono<Franquicia> eliminarProducto(String franquiciaId, String sucursalId, String productoId) {
+		return buscarFranquiciaPorId(franquiciaId)
+				.map(franquicia -> eliminarProductoDeSucursal(franquicia, sucursalId, productoId))
+				.flatMap(franquiciaRepositoryPort::guardar);
+	}
+
 	private Mono<Franquicia> buscarFranquiciaPorId(String franquiciaId) {
 		return franquiciaRepositoryPort.buscarPorId(franquiciaId)
 				.switchIfEmpty(Mono.error(new EntidadNoEncontradaException("Franquicia", franquiciaId)));
@@ -71,6 +78,14 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 		}
 		return franquicia.sucursales().stream().filter(sucursal -> sucursal.id().equals(sucursalId)).findFirst()
 				.orElseThrow(() -> new EntidadNoEncontradaException("Sucursal", sucursalId));
+	}
+
+	private static Producto buscarProductoEnSucursal(Sucursal sucursal, String productoId) {
+		if (CollectionUtils.isEmpty(sucursal.productos())) {
+			throw new EntidadNoEncontradaException("Producto", productoId);
+		}
+		return sucursal.productos().stream().filter(producto -> producto.id().equals(productoId)).findFirst()
+				.orElseThrow(() -> new EntidadNoEncontradaException("Producto", productoId));
 	}
 
 	private static void validarSucursalNoDuplicada(Franquicia franquicia, String nombreSucursal) {
@@ -120,6 +135,19 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 		}
 		nuevosProductos.add(nuevoProducto);
 		return new Sucursal(sucursal.id(), sucursal.nombre(), nuevosProductos);
+	}
+
+	private static Franquicia eliminarProductoDeSucursal(Franquicia franquicia, String sucursalId, String productoId) {
+		Sucursal sucursalObjetivo = buscarSucursalEnFranquicia(franquicia, sucursalId);
+		buscarProductoEnSucursal(sucursalObjetivo, productoId);
+		Sucursal sucursalActualizada = crearSucursalSinProducto(sucursalObjetivo, productoId);
+		return reemplazarSucursalEnFranquicia(franquicia, sucursalActualizada);
+	}
+
+	private static Sucursal crearSucursalSinProducto(Sucursal sucursal, String productoId) {
+		List<Producto> productosRestantes = sucursal.productos().stream()
+				.filter(producto -> !producto.id().equals(productoId)).toList();
+		return new Sucursal(sucursal.id(), sucursal.nombre(), productosRestantes);
 	}
 
 	private static Franquicia reemplazarSucursalEnFranquicia(Franquicia franquicia, Sucursal sucursalActualizada) {

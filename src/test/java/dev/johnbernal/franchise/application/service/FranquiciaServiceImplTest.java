@@ -37,14 +37,18 @@ class FranquiciaServiceImplTest {
 	private String franquiciaId;
 	private String nombreSucursal;
 	private String sucursalId;
+	private String sucursalInexistenteId;
 	private String nombreProducto;
 	private int stockInicial;
 	private String productoId;
+	private String productoInexistenteId;
 	private Sucursal sucursalExistente;
 	private Producto productoExistente;
+	private Producto otroProducto;
 	private Franquicia franquiciaExistente;
 	private Franquicia franquiciaConSucursal;
 	private Franquicia franquiciaConSucursalYProducto;
+	private Franquicia franquiciaConDosProductos;
 
 	@BeforeEach
 	void setUp() {
@@ -53,15 +57,21 @@ class FranquiciaServiceImplTest {
 		franquiciaId = "franquicia-id-123";
 		nombreSucursal = "Sucursal Norte";
 		sucursalId = "sucursal-1";
+		sucursalInexistenteId = "sucursal-inexistente";
 		nombreProducto = "Cafe Latte";
 		stockInicial = 25;
 		productoId = "producto-1";
+		productoInexistenteId = "producto-inexistente";
 		sucursalExistente = new Sucursal(sucursalId, nombreSucursal, List.of());
 		productoExistente = new Producto(productoId, nombreProducto, stockInicial);
+		otroProducto = new Producto("producto-2", "Croissant", 10);
 		Sucursal sucursalConProducto = new Sucursal(sucursalId, nombreSucursal, List.of(productoExistente));
+		Sucursal sucursalConDosProductos = new Sucursal(sucursalId, nombreSucursal,
+				List.of(productoExistente, otroProducto));
 		franquiciaExistente = new Franquicia(franquiciaId, nombreFranquicia, List.of());
 		franquiciaConSucursal = new Franquicia(franquiciaId, nombreFranquicia, List.of(sucursalExistente));
 		franquiciaConSucursalYProducto = new Franquicia(franquiciaId, nombreFranquicia, List.of(sucursalConProducto));
+		franquiciaConDosProductos = new Franquicia(franquiciaId, nombreFranquicia, List.of(sucursalConDosProductos));
 	}
 
 	@Test
@@ -205,7 +215,6 @@ class FranquiciaServiceImplTest {
 	@Test
 	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando la sucursal no existe en la franquicia")
 	void agregarProductoCuandoSucursalNoExisteDebeLanzarExcepcion() {
-		String sucursalInexistenteId = "sucursal-inexistente";
 		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConSucursal));
 
 		StepVerifier.create(
@@ -229,6 +238,73 @@ class FranquiciaServiceImplTest {
 				.expectErrorMatches(throwable -> {
 					boolean esTipoCorrecto = throwable instanceof EntidadDuplicadaException;
 					boolean contieneMensaje = throwable.getMessage().contains(nombreProducto);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe eliminar el producto indicado de la sucursal y conservar los demas productos")
+	void eliminarProductoExistenteDebeEliminarYRetornarFranquicia() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConDosProductos));
+		when(franquiciaRepositoryPort.guardar(any(Franquicia.class)))
+				.thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+
+		StepVerifier.create(franquiciaService.eliminarProducto(franquiciaId, sucursalId, productoId))
+				.assertNext(franquiciaActualizada -> {
+					assertThat(franquiciaActualizada.id()).isEqualTo(franquiciaId);
+					assertThat(franquiciaActualizada.sucursales()).hasSize(1);
+					Sucursal sucursalActualizada = franquiciaActualizada.sucursales().getFirst();
+					assertThat(sucursalActualizada.productos()).containsExactly(otroProducto);
+				}).verifyComplete();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando la franquicia no existe al eliminar producto")
+	void eliminarProductoCuandoFranquiciaNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.empty());
+
+		StepVerifier.create(franquiciaService.eliminarProducto(franquiciaId, sucursalId, productoId))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+					boolean contieneMensaje = throwable.getMessage().contains(franquiciaId);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando la sucursal no existe al eliminar producto")
+	void eliminarProductoCuandoSucursalNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConSucursalYProducto));
+
+		StepVerifier.create(franquiciaService.eliminarProducto(franquiciaId, sucursalInexistenteId, productoId))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+					boolean contieneMensaje = throwable.getMessage().contains(sucursalInexistenteId);
+					return esTipoCorrecto && contieneMensaje;
+				}).verify();
+
+		verify(franquiciaRepositoryPort).buscarPorId(franquiciaId);
+		verify(franquiciaRepositoryPort, never()).guardar(any(Franquicia.class));
+	}
+
+	@Test
+	@DisplayName("Debe retornar error EntidadNoEncontradaException cuando el producto no existe en la sucursal")
+	void eliminarProductoCuandoProductoNoExisteDebeLanzarExcepcion() {
+		when(franquiciaRepositoryPort.buscarPorId(franquiciaId)).thenReturn(Mono.just(franquiciaConSucursalYProducto));
+
+		StepVerifier.create(franquiciaService.eliminarProducto(franquiciaId, sucursalId, productoInexistenteId))
+				.expectErrorMatches(throwable -> {
+					boolean esTipoCorrecto = throwable instanceof EntidadNoEncontradaException;
+					boolean contieneMensaje = throwable.getMessage().contains(productoInexistenteId);
 					return esTipoCorrecto && contieneMensaje;
 				}).verify();
 

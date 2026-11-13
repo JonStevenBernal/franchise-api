@@ -1,6 +1,7 @@
 package dev.johnbernal.franchise.infrastructure.adapter.in.web.controller;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,6 +46,14 @@ public class FranquiciaController {
 	public Mono<FranquiciaResponse> agregarProducto(@PathVariable String franquiciaId, @PathVariable String sucursalId,
 			@Valid @RequestBody AgregarProductoRequest request) {
 		return franquiciaUseCasePort.agregarProducto(franquiciaId, sucursalId, request.nombre(), request.stock())
+				.map(FranquiciaResponse::fromDomain);
+	}
+
+	@DeleteMapping("/{franquiciaId}/sucursales/{sucursalId}/productos/{productoId}")
+	@ResponseStatus(HttpStatus.OK)
+	public Mono<FranquiciaResponse> eliminarProducto(@PathVariable String franquiciaId, @PathVariable String sucursalId,
+			@PathVariable String productoId) {
+		return franquiciaUseCasePort.eliminarProducto(franquiciaId, sucursalId, productoId)
 				.map(FranquiciaResponse::fromDomain);
 	}
 }
