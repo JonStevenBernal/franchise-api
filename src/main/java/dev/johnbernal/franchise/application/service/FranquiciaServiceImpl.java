@@ -101,6 +101,15 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 	}
 
 	@Override
+	public Mono<Franquicia> actualizarNombreProducto(String franquiciaId, String sucursalId, String productoId,
+			String nuevoNombre) {
+		String nombreLimpio = nuevoNombre.trim();
+		return buscarFranquiciaPorId(franquiciaId)
+				.map(franquicia -> actualizarNombreProductoEnSucursal(franquicia, sucursalId, productoId, nombreLimpio))
+				.flatMap(franquiciaRepositoryPort::guardar);
+	}
+
+	@Override
 	public Flux<SucursalProductoMayorStock> obtenerProductosConMayorStockPorSucursal(String franquiciaId) {
 		return buscarFranquiciaPorId(franquiciaId)
 				.flatMapMany(FranquiciaServiceImpl::extraerProductosConMayorStockPorSucursal);
@@ -148,10 +157,12 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 		}
 	}
 
-	private static void validarProductoNoDuplicado(Sucursal sucursal, String nombreProducto) {
+	private static void validarProductoNoDuplicado(Sucursal sucursal, String nombreProducto,
+			String productoIdExcluido) {
 		if (!CollectionUtils.isEmpty(sucursal.productos())) {
 			boolean existe = sucursal.productos().stream()
-					.anyMatch(producto -> producto.nombre().equalsIgnoreCase(nombreProducto));
+					.anyMatch(producto -> !Objects.equals(producto.id(), productoIdExcluido)
+							&& producto.nombre().equalsIgnoreCase(nombreProducto));
 			if (existe) {
 				throw new EntidadDuplicadaException("Producto", nombreProducto);
 			}
@@ -180,7 +191,7 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 	private static Franquicia agregarProductoASucursal(Franquicia franquicia, String sucursalId, String nombreProducto,
 			int stockInicial) {
 		Sucursal sucursalObjetivo = buscarSucursalEnFranquicia(franquicia, sucursalId);
-		validarProductoNoDuplicado(sucursalObjetivo, nombreProducto);
+		validarProductoNoDuplicado(sucursalObjetivo, nombreProducto, null);
 		Sucursal sucursalActualizada = crearSucursalConNuevoProducto(sucursalObjetivo, nombreProducto, stockInicial);
 		return reemplazarSucursalEnFranquicia(franquicia, sucursalActualizada);
 	}
@@ -213,6 +224,16 @@ public class FranquiciaServiceImpl implements FranquiciaUseCasePort {
 		Sucursal sucursalObjetivo = buscarSucursalEnFranquicia(franquicia, sucursalId);
 		Producto productoObjetivo = buscarProductoEnSucursal(sucursalObjetivo, productoId);
 		Producto productoActualizado = new Producto(productoObjetivo.id(), productoObjetivo.nombre(), nuevoStock);
+		Sucursal sucursalActualizada = reemplazarProductoEnSucursal(sucursalObjetivo, productoActualizado);
+		return reemplazarSucursalEnFranquicia(franquicia, sucursalActualizada);
+	}
+
+	private static Franquicia actualizarNombreProductoEnSucursal(Franquicia franquicia, String sucursalId,
+			String productoId, String nuevoNombre) {
+		Sucursal sucursalObjetivo = buscarSucursalEnFranquicia(franquicia, sucursalId);
+		Producto productoObjetivo = buscarProductoEnSucursal(sucursalObjetivo, productoId);
+		validarProductoNoDuplicado(sucursalObjetivo, nuevoNombre, productoId);
+		Producto productoActualizado = new Producto(productoObjetivo.id(), nuevoNombre, productoObjetivo.stock());
 		Sucursal sucursalActualizada = reemplazarProductoEnSucursal(sucursalObjetivo, productoActualizado);
 		return reemplazarSucursalEnFranquicia(franquicia, sucursalActualizada);
 	}
