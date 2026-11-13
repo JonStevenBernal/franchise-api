@@ -1,0 +1,17 @@
+target/
+.git/
+.gitignore
+.mvn/
+mvnw
+mvnw.cmd
+.settings/
+.classpath
+.project
+.sts4-cache/
+.idea/
+.vscode/
+*.iml
+docker-compose.yml
+postman_collection.json
+README.md
+
